@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 import re
+from typing import TYPE_CHECKING
 
 import sympy
+
+if TYPE_CHECKING:
+    from .config import SequenceRankingConfig
 
 
 def get_ordinal(n: int) -> str:
@@ -154,35 +158,43 @@ def get_fallback_fact(number: int) -> str:
 
 
 def extract_best_sequence(
-    results_list: list[dict], apply_length_penalty: bool
+    results_list: list[dict], ranking_config: "SequenceRankingConfig"
 ) -> dict | None:
     best_seq = None
     highest_score = -100
 
     for seq in results_list:
-        score = 0
-        keywords = seq.get("keyword", "").split(",")
-        name = seq.get("name", "")
-
-        if "core" in keywords:
-            score += 50
-        if "nice" in keywords:
-            score += 30
-        if "easy" in keywords:
-            score += 10
-        if "prime" in name.lower():
-            score += 60
-
-        score += len(seq.get("comment", []))
-
-        if apply_length_penalty:
-            if len(name) > 80:
-                score -= 20
-            if len(name) > 120:
-                score -= 50
+        score = score_sequence(seq, ranking_config)
 
         if score > highest_score:
             highest_score = score
             best_seq = seq
 
     return best_seq
+
+
+def score_sequence(seq: dict, ranking_config: "SequenceRankingConfig") -> int:
+    score = 0
+    keywords = [keyword.strip().lower() for keyword in seq.get("keyword", "").split(",")]
+    name = seq.get("name", "")
+    name_lower = name.lower()
+
+    for keyword, weight in ranking_config.keyword_weights.items():
+        if keyword in keywords:
+            score += weight
+
+    for text_fragment, weight in ranking_config.name_contains_weights.items():
+        if text_fragment in name_lower:
+            score += weight
+
+    comments = seq.get("comment", [])
+    if isinstance(comments, list):
+        score += len(comments) * ranking_config.comment_weight
+    elif comments:
+        score += ranking_config.comment_weight
+
+    for penalty_rule in ranking_config.length_penalties:
+        if len(name) > penalty_rule.min_length:
+            score -= penalty_rule.penalty
+
+    return score

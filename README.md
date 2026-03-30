@@ -117,6 +117,34 @@ digital_rain:
 
 When `character_set: math` is selected, the renderer will try to use a math-capable font automatically. If `font_name` is blank, it attempts safe fallbacks such as `Noto Sans Math`, `Cambria Math`, `STIX Two Math`, `DejaVu Sans`, and other available system fonts before falling back to Pygame's default font.
 
+### OEIS ranking options
+
+The refactored module version also lets you tune how OEIS search results are ranked before one is chosen for display:
+
+```yaml
+api:
+  sequence_ranking:
+    comment_weight: 1
+    keyword_weights:
+      core: 50
+      nice: 30
+      easy: 10
+    name_contains_weights:
+      prime: 60
+    length_penalties:
+      - min_length: 80
+        penalty: 20
+      - min_length: 120
+        penalty: 50
+```
+
+- `comment_weight` rewards sequences with more OEIS comment lines
+- `keyword_weights` boosts results whose OEIS keywords match entries like `core`, `nice`, or `easy`
+- `name_contains_weights` boosts results whose title contains words or fragments you care about
+- `length_penalties` discourages long titles that would produce awkward on-screen fact text
+
+The defaults match the previous built-in behaviour, so if you do not change these values the sequence selection should feel the same as before.
+
 ## How It Works
 
 1. The current time is converted from `HH:MM` to an integer like `1147`.

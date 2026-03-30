@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import requests
 
@@ -11,6 +12,9 @@ from .math_facts import (
     naturalize_fact,
 )
 
+if TYPE_CHECKING:
+    from .config import SequenceRankingConfig
+
 
 @dataclass(frozen=True)
 class FactResult:
@@ -19,7 +23,7 @@ class FactResult:
 
 
 def fetch_oeis_fact(
-    number: int, apply_length_penalty: bool, timeout: float = 5.0
+    number: int, ranking_config: "SequenceRankingConfig", timeout: float = 5.0
 ) -> FactResult:
     url = f"https://oeis.org/search?q={number}&fmt=json"
 
@@ -34,9 +38,7 @@ def fetch_oeis_fact(
                     if isinstance(item, dict) and "number" in item and "name" in item
                 ]
                 if results_list:
-                    best_seq = extract_best_sequence(
-                        results_list, apply_length_penalty
-                    )
+                    best_seq = extract_best_sequence(results_list, ranking_config)
                     if best_seq:
                         ordinal = extract_index_context(number, best_seq)
                         seq_id = f"A{best_seq['number']:06d}"

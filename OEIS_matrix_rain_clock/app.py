@@ -24,7 +24,7 @@ class MatrixRainClockApp:
         self.prefetch_lock = threading.Lock()
 
     def background_fetcher(self, time_str: str, number: int) -> None:
-        result = fetch_oeis_fact(number, self.config.api.apply_length_penalty)
+        result = fetch_oeis_fact(number, self.config.api.sequence_ranking)
         fact_text = result.text
 
         if random.random() < self.config.api.prime_factor_chance:

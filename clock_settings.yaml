@@ -86,10 +86,30 @@ animation:
   drop_reset_chance: 0.95
 
 api:
-  # If true, the scoring algorithm penalizes incredibly long OEIS sequence names 
-  # so the facts fit neatly on the screen without wrapping too many times.
-  apply_length_penalty: true
-  
   # Probability (0.0 to 1.0) that the clock will calculate and append prime factors.
   # 0.25 means there is a 25% chance every minute. (Set to 0.0 to disable, 1.0 for always).
   prime_factor_chance: 0.5
+
+  # Controls how OEIS results are ranked before the best sequence is chosen.
+  # Higher weights make a feature more desirable; penalties reduce the score.
+  sequence_ranking:
+    # Each OEIS comment line contributes this many points.
+    comment_weight: 1
+
+    # Boost specific OEIS keywords if they appear in the result metadata.
+    keyword_weights:
+      core: 50
+      nice: 30
+      easy: 10
+
+    # Boost results if their sequence title contains these fragments.
+    # Matching is case-insensitive.
+    name_contains_weights:
+      prime: 60
+
+    # Penalize long sequence titles so the final fact fits the screen better.
+    length_penalties:
+      - min_length: 80
+        penalty: 20
+      - min_length: 120
+        penalty: 50
