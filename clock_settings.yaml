@@ -5,7 +5,7 @@
 display:
   # The dimensions of the application window in pixels.
   width: 800
-  height: 600
+  height: 450
   
   # The size of the grid cells and the font. 
   # Note: Because the time digits are 6x10 blocks, a font size between 15 and 25 looks best.
