@@ -29,7 +29,7 @@ pygame.init()
 WIDTH = config['display']['width']
 HEIGHT = config['display']['height']
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Matrix Math Clock - Monolithic Digits")
+pygame.display.set_caption("Matrix Math Clock - Sculpted Typography")
 clock = pygame.time.Clock()
 
 FONT_SIZE = config['display']['font_size']
@@ -43,11 +43,10 @@ SCREEN_FADE_ALPHA = config['digital_rain'].get('screen_fade_alpha', 15)
 
 COLOR_TIME = tuple(config['time_digits']['color'])
 TIME_FADE_ALPHA = config['time_digits'].get('fade_alpha', 3)
-# NEW: Load the stacking limit
 MAX_OVERLAP = config['time_digits'].get('max_overlap_stack', 3)
 
-COLOR_LOCKED = tuple(config['fact_characters']['color'])
-COLOR_CURSOR = tuple(config['fact_characters']['cursor_color'])
+COLOR_LOCKED = tuple(config['fact_characters'].get('color', [255, 255, 255]))
+COLOR_CURSOR = tuple(config['fact_characters'].get('cursor_color', [0, 255, 0]))
 REVEAL_WINDOW = config['fact_characters'].get('reveal_window_size', 1)
 
 FALL_SPEED = config['animation'].get('fall_speed', 1.0)
@@ -65,18 +64,20 @@ columns = WIDTH // FONT_SIZE
 rows = HEIGHT // FONT_SIZE
 drops = [float(random.randint(-50, 0)) for _ in range(columns)]
 
-# --- NEW: DOUBLE-SIZED 6x10 ASCII FONT ---
+# --- NEW: PROPORTIONAL ANTI-ALIASED FONT ---
+# '#' = Core pixel (255 Alpha)
+# '+' = Anti-aliased edge pixel (120 Alpha)
 ASCII_DIGITS = {
-    '0': ["######", "######", "##  ##", "##  ##", "##  ##", "##  ##", "##  ##", "##  ##", "######", "######"],
-    '1': ["    ##", "   ###", "  ####", "    ##", "    ##", "    ##", "    ##", "    ##", "######", "######"],
-    '2': ["######", "######", "    ##", "    ##", "######", "######", "##    ", "##    ", "######", "######"],
-    '3': ["######", "######", "    ##", "    ##", "######", "######", "    ##", "    ##", "######", "######"],
+    '0': [" +##+ ", "######", "##  ##", "##  ##", "##  ##", "##  ##", "##  ##", "##  ##", "######", " +##+ "],
+    '1': ["  ##", " ###", "####", "  ##", "  ##", "  ##", "  ##", "  ##", "####", "####"],
+    '2': [" +##+ ", "######", "    ##", "    ##", " +##+ ", "##+   ", "##    ", "##    ", "######", "######"],
+    '3': [" +##+ ", "######", "    ##", "    ##", "  ###+", "  ###+", "    ##", "    ##", "######", " +##+ "],
     '4': ["##  ##", "##  ##", "##  ##", "##  ##", "######", "######", "    ##", "    ##", "    ##", "    ##"],
-    '5': ["######", "######", "##    ", "##    ", "######", "######", "    ##", "    ##", "######", "######"],
-    '6': ["######", "######", "##    ", "##    ", "######", "######", "##  ##", "##  ##", "######", "######"],
-    '7': ["######", "######", "    ##", "    ##", "   ## ", "   ## ", "  ##  ", "  ##  ", " ##   ", " ##   "],
-    '8': ["######", "######", "##  ##", "##  ##", "######", "######", "##  ##", "##  ##", "######", "######"],
-    '9': ["######", "######", "##  ##", "##  ##", "######", "######", "    ##", "    ##", "######", "######"],
+    '5': ["######", "######", "##    ", "##    ", "#####+", "######", "    ##", "    ##", "######", " +##+ "],
+    '6': [" +##+ ", "######", "##    ", "##    ", "######", "######", "##  ##", "##  ##", "######", " +##+ "],
+    '7': ["######", "######", "    ##", "   ##+", "   ## ", "  ##+ ", "  ##  ", " ##+  ", " ##   ", " ##   "],
+    '8': [" +##+ ", "######", "##  ##", "##  ##", " +##+ ", " +##+ ", "##  ##", "##  ##", "######", " +##+ "],
+    '9': [" +##+ ", "######", "##  ##", "##  ##", "######", "######", "    ##", "    ##", "######", " +##+ "],
     ':': ["  ", "  ", "##", "##", "  ", "  ", "##", "##", "  ", "  "]
 }
 
@@ -222,11 +223,12 @@ def wrap_text_to_grid(text, max_cols):
     return lines
 
 def get_time_pixels(time_str):
-    active_pixels = set()
+    # NOW A DICTIONARY: {(col, row): target_alpha}
+    active_pixels = {}
+    
+    # Calculate exact proportional width (each digit has a different length)
     time_width = sum(len(ASCII_DIGITS[char][0]) + 1 for char in time_str) - 1
     time_start_col = (columns - time_width) // 2
-    
-    # Push the larger numbers slightly lower so they don't clip the top edge
     time_start_row = rows // 8  
     
     current_col = time_start_col
@@ -235,8 +237,14 @@ def get_time_pixels(time_str):
         for r, row_str in enumerate(matrix):
             for c, val in enumerate(row_str):
                 if val == '#':
-                    active_pixels.add((current_col + c, time_start_row + r))
+                    active_pixels[(current_col + c, time_start_row + r)] = 255
+                elif val == '+':
+                    # Soft edge feathering
+                    active_pixels[(current_col + c, time_start_row + r)] = 120 
+        
+        # Advance proportionally by the exact width of the current digit
         current_col += len(matrix[0]) + 1
+        
     return active_pixels
 
 def get_fact_targets(fact_text):
@@ -245,8 +253,6 @@ def get_fact_targets(fact_text):
     
     max_fact_cols = columns - 8  
     fact_lines = wrap_text_to_grid(fact_text, max_fact_cols)
-    
-    # Because digits are now 10 rows tall, push the text further down
     current_row = (rows // 8) + 10 + 2  
     for line in fact_lines:
         start_col = (columns - len(line)) // 2
@@ -257,7 +263,7 @@ def get_fact_targets(fact_text):
 
 # --- 7. Main Game Loop ---
 current_time_str = ""
-time_pixel_targets = set()   
+time_pixel_targets = {}   
 active_time_pixels = {}  
 fact_targets = []  
 revealed_flags = [] 
@@ -317,14 +323,13 @@ while running:
                     if (i, target_row) not in active_time_pixels:
                         active_time_pixels[(i, target_row)] = []
                     
-                    # Manage Stacking Limit
                     if len(active_time_pixels[(i, target_row)]) >= MAX_OVERLAP:
-                        # Remove the oldest, most faded character to make room
                         active_time_pixels[(i, target_row)].pop(0)
                         
                     active_time_pixels[(i, target_row)].append({
                         'char': random.choice(matrix_chars),
-                        'alpha': 255 
+                        # Dynamically pull the exact alpha mapped to this pixel (120 or 255)
+                        'alpha': time_pixel_targets[(i, target_row)] 
                     })
 
         drops[i] += FALL_SPEED
@@ -344,6 +349,7 @@ while running:
         
         mask_surface = pygame.Surface((FONT_SIZE, FONT_SIZE))
         mask_surface.fill(BG_COLOR)
+        # The mask now naturally softens the edge pixels by bleeding the background rain through!
         mask_surface.set_alpha(int(max_alpha))
         screen.blit(mask_surface, (x, y))
         

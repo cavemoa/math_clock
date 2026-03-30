@@ -26,7 +26,7 @@ digital_rain:
   tail_color: [0, 255, 0]
   
   # The opacity/brightness of the rain (0 = Invisible, 255 = Max brightness)
-  alpha: 180
+  alpha: 100
   
   # Controls how quickly the rain trails fade to black.
   # Lower numbers (e.g., 5) create very long trails. Higher numbers (e.g., 25) create short trails.
@@ -38,12 +38,12 @@ time_digits:
   
   # Controls how quickly a time "pixel" fades after the rain passes over it.
   # Lower numbers (e.g., 1 or 2) make the time linger on the screen much longer.
-  fade_alpha: 3
+  fade_alpha: 1
   
   # Controls how many old characters can overlap in a single time cell.
   # Higher numbers (e.g., 5) look thicker and more chaotic. 
   # Lower numbers (e.g., 1 or 2) look cleaner and sharper.
-  max_overlap_stack: 3
+  max_overlap_stack: 10
 
 fact_characters:
   # Color of the locked natural language math paragraph (Default: Pure White)
