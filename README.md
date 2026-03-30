@@ -1,74 +1,111 @@
-# Matrix Math Clock ⏱️🧮
+# Matrix Math Clock
 
-A cyberpunk-inspired, generative ASCII-art clock that displays the current time and reveals highly obscure, mathematically significant facts about that specific time (e.g., 11:47 -> 1147) using real-time data from the On-Line Encyclopedia of Integer Sequences (OEIS).
+A cyberpunk-inspired ASCII-art clock built with Pygame. It shows the current time as glowing matrix-style digits and reveals mathematical facts about that time's numeric form using the OEIS database. For example, `11:47` is treated as `1147` and looked up as an integer sequence value.
 
-## ✨ Features
+## Overview
 
-* **Generative Matrix Rain Engine:** A custom-built Pygame engine that simulates the iconic falling green code.
-* **ASCII Art Time Display:** The current time is rendered in large block digits that dynamically "catch" falling rain, selectively fading and replenishing only the digits that change when the minute rolls over.
-* **Organic Text Decryption:** The math facts don't just appear; they are deposited onto the screen letter-by-letter precisely when a drop of digital rain passes over their grid coordinates.
-* **Natural Language Parsing (NLP):** Raw, academic mathematical fragments from the OEIS database are heuristically parsed into natural English sentences on the fly.
-* **Contextual Ordinal Math:** Calculates exactly where the time sits within a sequence (e.g., "1605 is the **24th** Catalan number").
-* **Prime Factorization:** Randomly calculates and appends the prime factorization of the current time using CPU-bound mathematics.
-* **Multi-Threaded Pre-fetching:** The clock quietly queries the internet for the *next* minute's fact in a background thread, ensuring the visual animation never freezes or drops frames.
-* **Fully Configurable:** Almost every visual and functional aspect can be tweaked without touching the Python code via a simple YAML file.
+This repository now contains two runnable versions of the clock:
 
-## 🛠️ Prerequisites
+- `matrix_math_clock.py`: the original all-in-one single-script version.
+- `run_oeis_matrix_rain_clock.py`: the entry point for the refactored module-based version.
 
-This project requires **Python 3.7+**. 
+Both versions use the same `clock_settings.yaml` configuration file and aim to produce the same overall visual effect.
 
-You will also need to install the following third-party libraries:
-* `pygame` (Visual rendering engine)
-* `pyyaml` (Configuration management)
-* `requests` (API network fetching)
-* `sympy` (Fast prime factorization)
+## Versions
 
-## 🚀 Installation
+### Single-script version
 
-1. Clone the repository:
-   ```bash
-   git clone [https://github.com/yourusername/matrix-math-clock.git](https://github.com/yourusername/matrix-math-clock.git)
-   cd matrix-math-clock
-   ```
+`matrix_math_clock.py` is the original monolithic implementation. It contains configuration loading, OEIS fetching, math helpers, layout logic, rendering, and the main Pygame loop in one file.
 
-2. Install the required dependencies:
-   ```bash
-   pip install pygame pyyaml requests sympy
-   ```
+Use this version if you want:
 
-3. Ensure `clock_settings.yaml` is in the same directory as the main script.
+- the original implementation exactly as written
+- a single file that is easy to copy and experiment with
+- a reference point for comparing the refactored package
 
-4. Run the clock:
-   ```bash
-   python main_clock.py
-   ```
-   *(Press `ESC` or close the window to exit).*
+Run it with:
 
-## ⚙️ Configuration (`clock_settings.yaml`)
+```bash
+python matrix_math_clock.py
+```
 
-The clock's behavior and aesthetics are controlled entirely by the `clock_settings.yaml` file. 
+### Module version
 
-### Display & Colors
-* Adjust the `width`, `height`, and `font_size` to fit your monitor or Raspberry Pi display.
-* Colors are defined in standard `[R, G, B]` format.
-* `rain_alpha`: Controls the brightness of the falling code.
-* `fade_alpha`: Controls how long the "trails" of the falling code remain on screen before fading to black.
+`run_oeis_matrix_rain_clock.py` is a small entry-point script that launches the refactored `OEIS_matrix_rain_clock` package.
 
-### Animation Dynamics
-* `fall_speed`: Determines how fast the drops fall. (e.g., `1.0` is standard, `0.5` is slow, `2.0` is fast). Fractional speeds allow for smooth, jittery terminal effects.
-* `reveal_window_size`: Determines how many upcoming letters in the math fact act as "tripwires" for the falling rain. A higher number makes the text decrypt faster and more chaotically.
+The package separates responsibilities across several files:
 
-### API & Data
-* `apply_length_penalty`: If `true`, the scoring algorithm prioritizes shorter, punchier math facts to fit neatly on the screen.
-* `prime_factor_chance`: A float between `0.0` and `1.0`. For example, `0.25` gives the clock a 25% chance every minute to calculate and append the prime factorization to the OEIS fact.
+- `OEIS_matrix_rain_clock/config.py`: YAML loading and config objects
+- `OEIS_matrix_rain_clock/digit_font.py`: ASCII digit definitions and matrix character set
+- `OEIS_matrix_rain_clock/math_facts.py`: math helpers, OEIS text cleanup, and factorization
+- `OEIS_matrix_rain_clock/oeis_client.py`: OEIS API fetching
+- `OEIS_matrix_rain_clock/layout.py`: text wrapping and grid positioning
+- `OEIS_matrix_rain_clock/renderer.py`: Pygame drawing logic
+- `OEIS_matrix_rain_clock/state.py`: runtime state objects
+- `OEIS_matrix_rain_clock/app.py`: application controller and main loop
 
-## 🧠 How it Works (Architecture)
+Use this version if you want:
 
-1. **The Grid:** The screen is divided into a rigid column/row grid based on the chosen font size. 
-2. **The Fetcher:** When the minute changes, a background thread calculates the *next* minute (e.g., `1148`), pings the OEIS JSON API, ranks the returned sequences based on algorithmic fame/simplicity, and passes the winner through the NLP grammar router.
-3. **The Lock:** The parsed text is mapped to specific target coordinates on the Pygame grid.
-4. **The Collision:** As the Pygame loop iterates, it checks the physical intersection of the falling `drops` array against the unrevealed target coordinates. When an intersection occurs, the text permanently locks into place, shielding itself from the background rain.
+- cleaner code organization
+- easier maintenance and extension
+- a better starting point for adding tests or new features
 
-## 📝 Offline Fallback
-If the clock loses internet connectivity, it gracefully falls back to local mathematical calculations (e.g., Even/Odd checking) while continuing to run the prime factorization engine, ensuring the screen never goes blank.
+Run it with:
 
+```bash
+python run_oeis_matrix_rain_clock.py
+```
+
+## Features
+
+- Matrix-style digital rain rendered in Pygame
+- Large ASCII-art time display
+- OEIS-backed facts for the current time interpreted as a number
+- Heuristic conversion of OEIS sequence names into readable English
+- Optional prime factorization appended to facts
+- Background fetching so animation stays responsive
+- Configurable colors, timing, and display behaviour through YAML
+
+## Requirements
+
+This project requires Python 3.7+ and these libraries:
+
+- `pygame`
+- `pyyaml`
+- `requests`
+- `sympy`
+
+Install them with:
+
+```bash
+pip install pygame pyyaml requests sympy
+```
+
+## Configuration
+
+Both versions read settings from `clock_settings.yaml`.
+
+You can tune:
+
+- display size and font size
+- rain colors and fade behaviour
+- time digit appearance
+- fact reveal speed
+- OEIS scoring behaviour
+- prime factorization frequency
+
+## How It Works
+
+1. The current time is converted from `HH:MM` to an integer like `1147`.
+2. The clock queries OEIS for that number and scores returned sequences.
+3. The best result is rewritten into more natural English.
+4. The text is mapped onto the screen as hidden target characters.
+5. Falling matrix rain reveals both the time digits and the fact text as it collides with those positions.
+
+## Offline behaviour
+
+If OEIS cannot be reached, the clock falls back to simple local facts such as even/odd classification, so the display still has something meaningful to show.
+
+## Exit
+
+Press `Esc` or close the Pygame window to exit either version.
