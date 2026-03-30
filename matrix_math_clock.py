@@ -8,6 +8,7 @@ import requests
 import threading
 import re
 import sympy
+import webbrowser
 
 # --- 1. Configuration ---
 def load_config(filepath='clock_settings.yaml'):
@@ -29,7 +30,7 @@ pygame.init()
 WIDTH = config['display']['width']
 HEIGHT = config['display']['height']
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Matrix Math Clock - Sculpted Typography")
+pygame.display.set_caption("Matrix Math Clock - Interactive Data")
 clock = pygame.time.Clock()
 
 FONT_SIZE = config['display']['font_size']
@@ -47,6 +48,8 @@ MAX_OVERLAP = config['time_digits'].get('max_overlap_stack', 3)
 
 COLOR_LOCKED = tuple(config['fact_characters'].get('color', [255, 255, 255]))
 COLOR_CURSOR = tuple(config['fact_characters'].get('cursor_color', [0, 255, 0]))
+COLOR_LINK = tuple(config['fact_characters'].get('link_color', [100, 255, 100]))
+FACT_BG_ALPHA = config['fact_characters'].get('background_alpha', 200)
 REVEAL_WINDOW = config['fact_characters'].get('reveal_window_size', 1)
 
 FALL_SPEED = config['animation'].get('fall_speed', 1.0)
@@ -60,25 +63,162 @@ fade_surface = pygame.Surface((WIDTH, HEIGHT))
 fade_surface.fill(BG_COLOR)
 fade_surface.set_alpha(SCREEN_FADE_ALPHA)
 
+# Pre-render the semi-transparent mask for the fact text
+fact_mask_surface = pygame.Surface((FONT_SIZE, FONT_SIZE))
+fact_mask_surface.fill(BG_COLOR)
+fact_mask_surface.set_alpha(FACT_BG_ALPHA)
+
 columns = WIDTH // FONT_SIZE
 rows = HEIGHT // FONT_SIZE
 drops = [float(random.randint(-50, 0)) for _ in range(columns)]
 
-# --- NEW: PROPORTIONAL ANTI-ALIASED FONT ---
+# --- NEW: TRUE-CENTER 7x11 ANTI-ALIASED FONT (FIXED HEIGHT) ---
 # '#' = Core pixel (255 Alpha)
 # '+' = Anti-aliased edge pixel (120 Alpha)
 ASCII_DIGITS = {
-    '0': [" +##+ ", "######", "##  ##", "##  ##", "##  ##", "##  ##", "##  ##", "##  ##", "######", " +##+ "],
-    '1': ["  ##", " ###", "####", "  ##", "  ##", "  ##", "  ##", "  ##", "####", "####"],
-    '2': [" +##+ ", "######", "    ##", "    ##", " +##+ ", "##+   ", "##    ", "##    ", "######", "######"],
-    '3': [" +##+ ", "######", "    ##", "    ##", "  ###+", "  ###+", "    ##", "    ##", "######", " +##+ "],
-    '4': ["##  ##", "##  ##", "##  ##", "##  ##", "######", "######", "    ##", "    ##", "    ##", "    ##"],
-    '5': ["######", "######", "##    ", "##    ", "#####+", "######", "    ##", "    ##", "######", " +##+ "],
-    '6': [" +##+ ", "######", "##    ", "##    ", "######", "######", "##  ##", "##  ##", "######", " +##+ "],
-    '7': ["######", "######", "    ##", "   ##+", "   ## ", "  ##+ ", "  ##  ", " ##+  ", " ##   ", " ##   "],
-    '8': [" +##+ ", "######", "##  ##", "##  ##", " +##+ ", " +##+ ", "##  ##", "##  ##", "######", " +##+ "],
-    '9': [" +##+ ", "######", "##  ##", "##  ##", "######", "######", "    ##", "    ##", "######", " +##+ "],
-    ':': ["  ", "  ", "##", "##", "  ", "  ", "##", "##", "  ", "  "]
+    '0': [
+        " +###+ ",
+        "#######",
+        "##   ##",
+        "##   ##",
+        "##   ##",
+        "##   ##",
+        "##   ##",
+        "##   ##",
+        "##   ##",
+        "#######",
+        " +###+ "
+    ],
+    '1': [
+        "   ##  ",
+        "  ###  ",
+        " ####  ",
+        "   ##  ",
+        "   ##  ",
+        "   ##  ",
+        "   ##  ",
+        "   ##  ",
+        "   ##  ",
+        "#######",
+        "#######"
+    ],
+    '2': [
+        " +###+ ",
+        "#######",
+        "##   ##",
+        "    +##",
+        "   +## ",
+        "  +##  ",
+        " +##   ",
+        "+##    ",
+        "##     ",
+        "#######",
+        "#######"
+    ],
+    '3': [
+        " +###+ ",
+        "#######",
+        "##   ##",
+        "    +##",
+        "   ### ",
+        "  ###  ",
+        "   ### ",
+        "    +##",
+        "##   ##",
+        "#######",
+        " +###+ "
+    ],
+    '4': [
+        "   +## ",
+        "  +### ",
+        " +#### ",
+        "+## ## ",
+        "##  ## ",
+        "#######",
+        "#######",
+        "    ## ",
+        "    ## ",
+        "    ## ",
+        "    ## "
+    ],
+    '5': [
+        "#######",
+        "#######",
+        "##     ",
+        "##     ",
+        "######+",
+        "#######",
+        "     ##",
+        "     ##",
+        "##   ##",
+        "#######",
+        " +###+ "
+    ],
+    '6': [
+        " +###+ ",
+        "#######",
+        "##     ",
+        "##     ",
+        "######+",
+        "#######",
+        "##   ##",
+        "##   ##",
+        "##   ##",
+        "#######",
+        " +###+ "
+    ],
+    '7': [
+        "#######",
+        "#######",
+        "##   ##",
+        "    +##",
+        "   +## ",
+        "   ##  ",
+        "  +##  ",
+        "  ##   ",
+        " +##   ",
+        " ##    ",
+        " ##    "
+    ],
+    '8': [
+        " +###+ ",
+        "#######",
+        "##   ##",
+        "##   ##",
+        " +###+ ",
+        "#######",
+        " +###+ ",
+        "##   ##",
+        "##   ##",
+        "#######",
+        " +###+ "
+    ],
+    '9': [
+        " +###+ ",
+        "#######",
+        "##   ##",
+        "##   ##",
+        "#######",
+        "+######",
+        "     ##",
+        "     ##",
+        "     ##",
+        "#######",
+        " +###+ "
+    ],
+    ':': [
+        "  ",
+        "  ",
+        "##",
+        "##",
+        "  ",
+        "  ",
+        "  ",
+        "##",
+        "##",
+        "  ",
+        "  "
+    ]
 }
 
 # --- 3. Data Engine: NLP & Math Helpers ---
@@ -194,20 +334,30 @@ def fetch_oeis_fact(number):
                 if best_seq:
                     raw_description = best_seq['name']
                     ordinal = extract_index_context(number, best_seq)
-                    return naturalize_fact(number, raw_description, ordinal)
+                    # Return both the text and the raw sequence ID
+                    seq_id = f"A{best_seq['number']:06d}"
+                    return naturalize_fact(number, raw_description, ordinal), seq_id
     except requests.exceptions.RequestException: pass
-    return get_fallback_fact(number)
+    
+    # Return None for the sequence ID if it failed or used a fallback
+    return get_fallback_fact(number), None
 
 # --- 5. Threading Logic ---
 prefetched_facts = {}
 
 def background_fetcher(time_str, number):
-    fact = fetch_oeis_fact(number)
+    fact_text, seq_id = fetch_oeis_fact(number)
+    
     if random.random() < PRIME_FACTOR_CHANCE:
         factors_str = get_prime_factors_string(number)
         if factors_str:
-            fact += f" Its prime factorization is {factors_str}."
-    prefetched_facts[time_str] = fact
+            fact_text += f" Its prime factorization is {factors_str}."
+            
+    # Store both the text and the sequence ID
+    prefetched_facts[time_str] = {
+        'text': fact_text,
+        'seq_id': seq_id
+    }
 
 # --- 6. Visual Grid Logic ---
 def wrap_text_to_grid(text, max_cols):
@@ -223,10 +373,7 @@ def wrap_text_to_grid(text, max_cols):
     return lines
 
 def get_time_pixels(time_str):
-    # NOW A DICTIONARY: {(col, row): target_alpha}
     active_pixels = {}
-    
-    # Calculate exact proportional width (each digit has a different length)
     time_width = sum(len(ASCII_DIGITS[char][0]) + 1 for char in time_str) - 1
     time_start_col = (columns - time_width) // 2
     time_start_row = rows // 8  
@@ -239,12 +386,8 @@ def get_time_pixels(time_str):
                 if val == '#':
                     active_pixels[(current_col + c, time_start_row + r)] = 255
                 elif val == '+':
-                    # Soft edge feathering
                     active_pixels[(current_col + c, time_start_row + r)] = 120 
-        
-        # Advance proportionally by the exact width of the current digit
         current_col += len(matrix[0]) + 1
-        
     return active_pixels
 
 def get_fact_targets(fact_text):
@@ -268,13 +411,25 @@ active_time_pixels = {}
 fact_targets = []  
 revealed_flags = [] 
 
+# Used for the clickable link
+current_seq_id = None
+link_rect = None
+
 running = True
 while running:
+    # Handle Mouse Position for Hover Effects
+    mouse_pos = pygame.mouse.get_pos()
+    
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
         elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
             running = False
+        # NEW: Listen for mouse clicks
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1 and link_rect and current_seq_id:
+                if link_rect.collidepoint(event.pos):
+                    webbrowser.open(f"https://oeis.org/{current_seq_id}")
 
     now = datetime.datetime.now()
     now_str = now.strftime("%H:%M")
@@ -282,7 +437,10 @@ while running:
     if now_str != current_time_str:
         current_time_str = now_str
         
-        display_fact = prefetched_facts.get(now_str, f"Loading sequence for {now_str.replace(':', '')}...")
+        # Grab the complex object we stored in the fetcher
+        display_data = prefetched_facts.get(now_str, {'text': f"Loading sequence for {now_str.replace(':', '')}...", 'seq_id': None})
+        display_fact = display_data['text']
+        current_seq_id = display_data['seq_id']
         
         time_pixel_targets = get_time_pixels(now_str)
         fact_targets = get_fact_targets(display_fact)
@@ -312,7 +470,6 @@ while running:
             tail_surface.set_alpha(RAIN_ALPHA)
             screen.blit(tail_surface, (x, y - FONT_SIZE))
 
-        # Collision Check for Time Pixels
         current_drop_y = drops[i]
         previous_drop_y = current_drop_y - FALL_SPEED
         
@@ -328,7 +485,6 @@ while running:
                         
                     active_time_pixels[(i, target_row)].append({
                         'char': random.choice(matrix_chars),
-                        # Dynamically pull the exact alpha mapped to this pixel (120 or 255)
                         'alpha': time_pixel_targets[(i, target_row)] 
                     })
 
@@ -349,7 +505,6 @@ while running:
         
         mask_surface = pygame.Surface((FONT_SIZE, FONT_SIZE))
         mask_surface.fill(BG_COLOR)
-        # The mask now naturally softens the edge pixels by bleeding the background rain through!
         mask_surface.set_alpha(int(max_alpha))
         screen.blit(mask_surface, (x, y))
         
@@ -385,7 +540,10 @@ while running:
     for i, ((col, row), char) in enumerate(fact_targets):
         if revealed_flags[i]:
             x, y = col * FONT_SIZE, row * FONT_SIZE
-            pygame.draw.rect(screen, BG_COLOR, (x, y, FONT_SIZE, FONT_SIZE))
+            
+            # The new semi-transparent smoked-glass mask
+            screen.blit(fact_mask_surface, (x, y))
+            
             screen.blit(font.render(char, True, COLOR_LOCKED), (x, y))
 
     # --- DRAW THE CURSOR ---
@@ -393,6 +551,31 @@ while running:
         first_unrevealed = unrevealed_indices[0]
         (cursor_col, cursor_row), _ = fact_targets[first_unrevealed]
         screen.blit(font.render("█", True, COLOR_CURSOR), (cursor_col * FONT_SIZE, cursor_row * FONT_SIZE))
+
+    # --- DRAW THE OEIS LINK ---
+    # Only draw if the sequence successfully loaded and had a valid A-number
+    if current_seq_id:
+        link_str = f"[{current_seq_id}]"
+        
+        # Test if the mouse is hovering over it for interactive feedback
+        is_hovering = link_rect and link_rect.collidepoint(mouse_pos)
+        display_color = COLOR_LOCKED if is_hovering else COLOR_LINK
+        
+        link_surf = font.render(link_str, True, display_color)
+        
+        # Position it in the bottom right corner with a small 15px margin
+        link_rect = link_surf.get_rect(bottomright=(WIDTH - 15, HEIGHT - 15))
+        
+        # Give it the same smoked-glass mask as the main text so it's readable
+        link_mask = pygame.Surface(link_rect.size)
+        link_mask.fill(BG_COLOR)
+        link_mask.set_alpha(FACT_BG_ALPHA)
+        
+        screen.blit(link_mask, link_rect.topleft)
+        screen.blit(link_surf, link_rect.topleft)
+    else:
+        # Reset the rect so we don't accidentally click invisible links
+        link_rect = None
 
     pygame.display.flip()
     clock.tick(config['display']['target_fps'])

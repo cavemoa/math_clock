@@ -51,6 +51,13 @@ fact_characters:
   
   # Color of the blinking terminal cursor at the end of the text
   cursor_color: [0, 255, 0]
+
+  # The color of the clickable OEIS link in the bottom right
+  link_color: [100, 255, 100]
+  
+  # How dark the mask behind the math text is (0 = invisible, 255 = solid black).
+  # 200 creates a beautiful smoked-glass effect that lets the rain bleed through.
+  background_alpha: 200
   
   # How many letters ahead of the cursor can be revealed simultaneously by the rain.
   # A higher number (e.g., 10) makes the sentence decrypt much faster with letters popping 
