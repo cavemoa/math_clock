@@ -5,7 +5,7 @@ import random
 import pygame
 
 from .config import AppConfig
-from .digit_font import MATRIX_CHARS
+from .digit_font import get_rain_characters
 
 
 class MatrixRainRenderer:
@@ -21,7 +21,9 @@ class MatrixRainRenderer:
         self.screen = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption("Matrix Math Clock - Interactive Data")
         self.clock = pygame.time.Clock()
-        self.font = pygame.font.SysFont("consolas", self.font_size, bold=True)
+        self.text_font = self._build_text_font()
+        self.rain_font = self._build_rain_font()
+        self.rain_chars = get_rain_characters(config.digital_rain.character_set)
 
         self.fade_surface = pygame.Surface((self.width, self.height))
         self.fade_surface.fill(self.background_color)
@@ -40,6 +42,58 @@ class MatrixRainRenderer:
     def get_mouse_position(self) -> tuple[int, int]:
         return pygame.mouse.get_pos()
 
+    def _load_font_from_candidates(
+        self, font_names: list[str], bold: bool = False
+    ) -> pygame.font.Font:
+        for font_name in font_names:
+            match = pygame.font.match_font(font_name, bold=bold)
+            if match:
+                return pygame.font.Font(match, self.font_size)
+        return pygame.font.Font(None, self.font_size)
+
+    def _build_text_font(self) -> pygame.font.Font:
+        return self._load_font_from_candidates(
+            ["Consolas", "DejaVu Sans Mono", "Courier New"], bold=True
+        )
+
+    def _build_rain_font(self) -> pygame.font.Font:
+        candidates: list[str] = []
+        if self.config.digital_rain.font_name:
+            candidates.append(self.config.digital_rain.font_name)
+
+        if self.config.digital_rain.character_set == "math":
+            candidates.extend(
+                [
+                    "Noto Sans Math",
+                    "Cambria Math",
+                    "STIX Two Math",
+                    "STIXGeneral",
+                    "DejaVu Sans",
+                    "Segoe UI Symbol",
+                ]
+            )
+        else:
+            candidates.extend(["Consolas", "DejaVu Sans Mono", "Courier New"])
+
+        return self._load_font_from_candidates(candidates)
+
+    def _blit_grid_character(
+        self,
+        font: pygame.font.Font,
+        char: str,
+        color: tuple[int, int, int],
+        x: int,
+        y: int,
+        alpha: int | None = None,
+    ) -> None:
+        char_surface = font.render(char, True, color)
+        if alpha is not None:
+            char_surface.set_alpha(alpha)
+        char_rect = char_surface.get_rect(
+            center=(x + (self.font_size // 2), y + (self.font_size // 2))
+        )
+        self.screen.blit(char_surface, char_rect)
+
     def clear_frame(self) -> None:
         self.screen.blit(self.fade_surface, (0, 0))
 
@@ -53,20 +107,26 @@ class MatrixRainRenderer:
             x = column_index * self.font_size
             y = drop_row_int * self.font_size
 
-            head_char = random.choice(MATRIX_CHARS)
-            head_surface = self.font.render(
-                head_char, True, self.config.digital_rain.head_color
+            head_char = random.choice(self.rain_chars)
+            self._blit_grid_character(
+                self.rain_font,
+                head_char,
+                self.config.digital_rain.head_color,
+                x,
+                y,
+                alpha=self.config.digital_rain.alpha,
             )
-            head_surface.set_alpha(self.config.digital_rain.alpha)
-            self.screen.blit(head_surface, (x, y))
 
             if drop_row_int > 0:
-                tail_char = random.choice(MATRIX_CHARS)
-                tail_surface = self.font.render(
-                    tail_char, True, self.config.digital_rain.tail_color
+                tail_char = random.choice(self.rain_chars)
+                self._blit_grid_character(
+                    self.rain_font,
+                    tail_char,
+                    self.config.digital_rain.tail_color,
+                    x,
+                    y - self.font_size,
+                    alpha=self.config.digital_rain.alpha,
                 )
-                tail_surface.set_alpha(self.config.digital_rain.alpha)
-                self.screen.blit(tail_surface, (x, y - self.font_size))
 
             current_drop_y = self.drops[column_index]
             previous_drop_y = current_drop_y - self.config.animation.fall_speed
@@ -79,7 +139,7 @@ class MatrixRainRenderer:
                         active_stack.pop(0)
                     active_stack.append(
                         {
-                            "char": random.choice(MATRIX_CHARS),
+                            "char": random.choice(self.rain_chars),
                             "alpha": float(time_pixel_targets[target]),
                         }
                     )
@@ -109,11 +169,14 @@ class MatrixRainRenderer:
             self.screen.blit(mask_surface, (x, y))
 
             for data in stack:
-                char_surface = self.font.render(
-                    str(data["char"]), True, self.config.time_digits.color
+                self._blit_grid_character(
+                    self.rain_font,
+                    str(data["char"]),
+                    self.config.time_digits.color,
+                    x,
+                    y,
+                    alpha=int(float(data["alpha"])),
                 )
-                char_surface.set_alpha(int(float(data["alpha"])))
-                self.screen.blit(char_surface, (x, y))
                 data["alpha"] = float(data["alpha"]) - self.config.time_digits.fade_alpha
 
             active_time_pixels[(col, row)] = [
@@ -154,9 +217,12 @@ class MatrixRainRenderer:
                 x = col * self.font_size
                 y = row * self.font_size
                 self.screen.blit(self.fact_mask_surface, (x, y))
-                self.screen.blit(
-                    self.font.render(char, True, self.config.fact_characters.color),
-                    (x, y),
+                self._blit_grid_character(
+                    self.text_font,
+                    char,
+                    self.config.fact_characters.color,
+                    x,
+                    y,
                 )
 
     def draw_cursor(
@@ -186,14 +252,14 @@ class MatrixRainRenderer:
             return None
 
         link_str = f"[{seq_id}]"
-        link_surf = self.font.render(
+        link_surf = self.text_font.render(
             link_str, True, self.config.fact_characters.link_color
         )
         link_rect = link_surf.get_rect(bottomright=(self.width - 15, self.height - 15))
 
         is_hovering = link_rect.collidepoint(mouse_pos)
         if is_hovering:
-            link_surf = self.font.render(
+            link_surf = self.text_font.render(
                 link_str, True, self.config.fact_characters.color
             )
 

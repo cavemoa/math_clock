@@ -1,4 +1,20 @@
-MATRIX_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*"
+CLASSIC_RAIN_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*"
+
+MATH_RAIN_CHARS = (
+    "∑∏∫√∞≈≠≤≥±×÷"
+    "∈∩∪⊂⊆∂∇∀∃"
+    "∝∴∵⊕⊗∥∠∅"
+    "∧∨∼≡∮∆"
+)
+
+RAIN_CHARACTER_SETS = {
+    "classic": CLASSIC_RAIN_CHARS,
+    "math": MATH_RAIN_CHARS,
+}
+
+
+def get_rain_characters(character_set: str) -> str:
+    return RAIN_CHARACTER_SETS.get(character_set.lower(), CLASSIC_RAIN_CHARS)
 
 ASCII_DIGITS = {
     "0": [

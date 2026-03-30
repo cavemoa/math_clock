@@ -65,6 +65,7 @@ python run_oeis_matrix_rain_clock.py
 ## Features
 
 - Matrix-style digital rain rendered in Pygame
+- Selectable rain character sets: classic or curated math symbols
 - Large ASCII-art time display
 - OEIS-backed facts for the current time interpreted as a number
 - Heuristic conversion of OEIS sequence names into readable English
@@ -94,11 +95,27 @@ Both versions read settings from `clock_settings.yaml`.
 You can tune:
 
 - display size and font size
+- digital rain character set and preferred rain font
 - rain colors and fade behaviour
 - time digit appearance
 - fact reveal speed
 - OEIS scoring behaviour
 - prime factorization frequency
+
+### Digital rain character sets
+
+The refactored module version supports two rain character sets through `clock_settings.yaml`:
+
+```yaml
+digital_rain:
+  character_set: classic   # classic | math
+  font_name: ""            # optional preferred rain font
+```
+
+- `classic` uses the original letters, digits, and symbols
+- `math` uses a curated set of mathematical operators and symbols
+
+When `character_set: math` is selected, the renderer will try to use a math-capable font automatically. If `font_name` is blank, it attempts safe fallbacks such as `Noto Sans Math`, `Cambria Math`, `STIX Two Math`, `DejaVu Sans`, and other available system fonts before falling back to Pygame's default font.
 
 ## How It Works
 

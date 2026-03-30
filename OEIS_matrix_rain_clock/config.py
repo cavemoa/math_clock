@@ -21,6 +21,8 @@ class DigitalRainConfig:
     tail_color: tuple[int, int, int]
     alpha: int
     screen_fade_alpha: int
+    character_set: str
+    font_name: str | None
 
 
 @dataclass(frozen=True)
@@ -95,6 +97,14 @@ def load_config(filepath: str = "clock_settings.yaml") -> AppConfig:
             alpha=int(config_data["digital_rain"].get("alpha", 255)),
             screen_fade_alpha=int(
                 config_data["digital_rain"].get("screen_fade_alpha", 15)
+            ),
+            character_set=str(
+                config_data["digital_rain"].get("character_set", "classic")
+            ).strip().lower(),
+            font_name=(
+                str(config_data["digital_rain"]["font_name"]).strip()
+                if config_data["digital_rain"].get("font_name")
+                else None
             ),
         ),
         time_digits=TimeDigitsConfig(

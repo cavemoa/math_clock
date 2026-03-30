@@ -19,6 +19,17 @@ display:
   background_color: [0, 0, 0]
 
 digital_rain:
+  # Selects which pool of characters is used for the falling rain.
+  # classic = letters, numbers, and symbols
+  # math = curated mathematical operators and symbols
+  character_set: math
+
+  # Optional preferred font for the rain characters only.
+  # Leave blank to use automatic fallback selection.
+  # For math mode, the renderer will try fonts such as Noto Sans Math,
+  # Cambria Math, STIX Two Math, DejaVu Sans, and other safe fallbacks.
+  font_name: "Noto Sans Math"
+
   # Color of the bright, leading character of a falling drop (Default: Pale Green)
   head_color: [200, 255, 200]
   
@@ -81,4 +92,4 @@ api:
   
   # Probability (0.0 to 1.0) that the clock will calculate and append prime factors.
   # 0.25 means there is a 25% chance every minute. (Set to 0.0 to disable, 1.0 for always).
-  prime_factor_chance: 0.25
+  prime_factor_chance: 0.5
