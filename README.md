@@ -145,6 +145,55 @@ api:
 
 The defaults match the previous built-in behaviour, so if you do not change these values the sequence selection should feel the same as before.
 
+### Exploring ranking preferences
+
+The refactored package includes [test_scripts/ranking_test.py](c:/Users/jonathand/code/math_clock/test_scripts/ranking_test.py), a small diagnostic script for exploring how your current `api.sequence_ranking` settings affect OEIS result selection.
+
+It loads the live values from `clock_settings.yaml`, queries OEIS slowly by default, scores the returned candidates, and prints:
+
+- the winning OEIS sequence and its score
+- the raw OEIS title
+- the parsed natural-language fact
+- the top-ranked alternatives for comparison
+
+This is useful when you want to answer questions like:
+
+- "Am I over-prioritizing prime-related sequences?"
+- "Do I want shorter fact text on screen?"
+- "Are `core` and `nice` getting the kinds of results I expect?"
+- "How often would a different scoring profile pick a more interesting fact?"
+
+By default it spaces requests out with a `2.0` second delay so you can inspect results without hammering the OEIS site.
+
+Example usage:
+
+```bash
+python test_scripts/ranking_test.py
+python test_scripts/ranking_test.py --mode random --count 10 --seed 7
+python test_scripts/ranking_test.py --mode custom --numbers 610 1147 1605 --top 3
+```
+
+Modes:
+
+- `repeatable`: uses a built-in fixed list of numbers so you can compare ranking changes across runs
+- `random`: generates a seeded repeatable random list of test values
+- `custom`: lets you provide your own numbers directly on the command line
+
+Useful options:
+
+- `--count`: number of queries to run, default `10`
+- `--delay`: seconds to wait between OEIS requests, default `2.0`
+- `--top`: how many ranked candidates to print for each query
+- `--seed`: random seed for `random` mode
+- `--config`: path to an alternate YAML config file if you want to compare different scoring setups
+
+A practical workflow is:
+
+1. Run `ranking_test.py` in `repeatable` mode and note which sequences win.
+2. Adjust one or two `sequence_ranking` weights in `clock_settings.yaml`.
+3. Run the same repeatable test again and compare the winners and scores.
+4. Once you like the pattern, try `random` mode to see how the preferences behave across a broader range of values.
+
 ## How It Works
 
 1. The current time is converted from `HH:MM` to an integer like `1147`.
