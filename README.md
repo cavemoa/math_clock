@@ -2,6 +2,10 @@
 
 A cyberpunk-inspired ASCII-art clock built with Pygame. It shows the current time as glowing matrix-style digits and reveals mathematical facts about that time's numeric form using the OEIS database. For example, `11:47` is treated as `1147` and looked up as an integer sequence value.
 
+<p align="center">
+  <img src="\images\screenshot_1.JPG" alt="Description of the image" width="70%" />
+</p>
+
 ## Overview
 
 This repository now contains two runnable versions of the clock:
