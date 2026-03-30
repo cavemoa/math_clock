@@ -1,0 +1,77 @@
+# ==========================================
+# MATRIX MATH CLOCK - CONFIGURATION SETTINGS
+# ==========================================
+
+display:
+  # The dimensions of the application window in pixels.
+  width: 800
+  height: 600
+  
+  # The size of the grid cells and the font. 
+  # Note: Because the time digits are 6x10 blocks, a font size between 15 and 25 looks best.
+  font_size: 20
+  
+  # Caps the maximum frames per second. 30 FPS gives it a slightly retro, terminal feel 
+  # while keeping CPU usage very low. 60 FPS makes the rain perfectly smooth.
+  target_fps: 30
+  
+  # The base canvas color in [Red, Green, Blue] format (0-255). Default is pure Black.
+  background_color: [0, 0, 0]
+
+digital_rain:
+  # Color of the bright, leading character of a falling drop (Default: Pale Green)
+  head_color: [200, 255, 200]
+  
+  # Color of the trailing characters behind the head (Default: Pure Green)
+  tail_color: [0, 255, 0]
+  
+  # The opacity/brightness of the rain (0 = Invisible, 255 = Max brightness)
+  alpha: 180
+  
+  # Controls how quickly the rain trails fade to black.
+  # Lower numbers (e.g., 5) create very long trails. Higher numbers (e.g., 25) create short trails.
+  screen_fade_alpha: 15
+
+time_digits:
+  # Color of the large 6x10 ASCII block numbers (Default: Light Green to match the rain)
+  color: [255, 255, 50]
+  
+  # Controls how quickly a time "pixel" fades after the rain passes over it.
+  # Lower numbers (e.g., 1 or 2) make the time linger on the screen much longer.
+  fade_alpha: 3
+  
+  # Controls how many old characters can overlap in a single time cell.
+  # Higher numbers (e.g., 5) look thicker and more chaotic. 
+  # Lower numbers (e.g., 1 or 2) look cleaner and sharper.
+  max_overlap_stack: 3
+
+fact_characters:
+  # Color of the locked natural language math paragraph (Default: Pure White)
+  color: [255, 255, 255]
+  
+  # Color of the blinking terminal cursor at the end of the text
+  cursor_color: [0, 255, 0]
+  
+  # How many letters ahead of the cursor can be revealed simultaneously by the rain.
+  # A higher number (e.g., 10) makes the sentence decrypt much faster with letters popping 
+  # in ahead of the main cursor.
+  reveal_window_size: 5
+
+animation:
+  # Fractional speed of the falling rain. 
+  # 1.0 is standard (one cell per frame). 0.5 is half-speed. 2.0 is double-speed.
+  fall_speed: 0.6
+  
+  # The probability (0.0 to 1.0) that a drop resets to the top after falling off the bottom.
+  # 0.95 means it has a 5% chance of *not* resetting immediately, which prevents 
+  # straight horizontal lines of code from falling uniformly.
+  drop_reset_chance: 0.95
+
+api:
+  # If true, the scoring algorithm penalizes incredibly long OEIS sequence names 
+  # so the facts fit neatly on the screen without wrapping too many times.
+  apply_length_penalty: true
+  
+  # Probability (0.0 to 1.0) that the clock will calculate and append prime factors.
+  # 0.25 means there is a 25% chance every minute. (Set to 0.0 to disable, 1.0 for always).
+  prime_factor_chance: 0.25
